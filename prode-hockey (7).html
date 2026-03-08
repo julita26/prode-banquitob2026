@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Prode 2026 Banquito B</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a0000;font-family:'Outfit',sans-serif}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-thumb{background:#5a1010}
+.si:focus{border-color:#e53030!important;background:#2a0808!important;outline:none!important}
+input:focus,select:focus{outline:none}
+select option{background:#1a0000;color:#fff}
+.tag-input{width:100%;background:#1a0000;border:1px solid #5a1010;border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;font-family:'Outfit',sans-serif}
+.tag-input:focus{border-color:#e53030;outline:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef}=React;
+
+const JSONBIN_ID  = "69ab424f43b1c97be9bb5747";
+const JSONBIN_KEY = "$2a$10$WPhp8C503Kf2ZjMYpSHrP.uReAHcblhwaQ1jRxv9u3U3B7fYC1Ogi";
+const ADMIN_PASS  = "julita123";
+const PTS_EXACTO=3, PTS_RESULTADO=1, PTS_ESPECIAL=6, PTS_TARJETA_ESP=4;
+const PTS_TARJETAS_NUM=2, PTS_TARJETAS_JUG=3, PTS_GOL_CANT=0, PTS_GOL_JUG=2;
+// goles: predecir jugadora correcta = +2 por gol acertado (verificado por admin)
+// tarjetas: acertar numero = +2, acertar numero+jugadora = +3
+const STORAGE_KEY="prode_hockey_ahba_v6";
+const BPC="Bco. Provincia B";
+
+const EQUIPOS=["Asociación del Sur","Italiano B","San Luis B","Bco. Provincia B","C. Newman","S. Bárbara C","Martín Güemes","Q.H.S.","AACF Quilmes","Hurling B","Miraflores C.","U. La Matanza","B.A.C.R.C. B","Est. La Plata"];
+const TIPOS_TARJETA=["verde","amarilla","roja"];
+
+const FECHAS=[
+  {n:1,dia:"sáb 08 mar",partidos:[["Asociación del Sur","Italiano B"],["San Luis B","B.A.C.R.C. B"],["Bco. Provincia B","Est. La Plata"],["C. Newman","S. Bárbara C"],["Martín Güemes","Q.H.S."],["AACF Quilmes","Hurling B"],["Miraflores C.","U. La Matanza"]]},
+  {n:2,dia:"sáb 15 mar",partidos:[["Miraflores C.","Asociación del Sur"],["U. La Matanza","AACF Quilmes"],["Hurling B","Martín Güemes"],["Q.H.S.","C. Newman"],["S. Bárbara C","Bco. Provincia B"],["Est. La Plata","San Luis B"],["B.A.C.R.C. B","Italiano B"]]},
+  {n:3,dia:"sáb 22 mar",partidos:[["Asociación del Sur","B.A.C.R.C. B"],["Italiano B","Est. La Plata"],["San Luis B","S. Bárbara C"],["Bco. Provincia B","Q.H.S."],["C. Newman","Hurling B"],["Martín Güemes","U. La Matanza"],["AACF Quilmes","Miraflores C."]]},
+  {n:4,dia:"sáb 29 mar",partidos:[["AACF Quilmes","Asociación del Sur"],["Miraflores C.","Martín Güemes"],["U. La Matanza","C. Newman"],["Hurling B","Bco. Provincia B"],["Q.H.S.","San Luis B"],["S. Bárbara C","Italiano B"],["Est. La Plata","B.A.C.R.C. B"]]},
+  {n:5,dia:"sáb 12 abr",partidos:[["Asociación del Sur","Est. La Plata"],["B.A.C.R.C. B","S. Bárbara C"],["Italiano B","Q.H.S."],["San Luis B","Hurling B"],["Bco. Provincia B","U. La Matanza"],["C. Newman","Miraflores C."],["Martín Güemes","AACF Quilmes"]]},
+  {n:6,dia:"sáb 19 abr",partidos:[["Martín Güemes","Asociación del Sur"],["AACF Quilmes","C. Newman"],["Miraflores C.","Bco. Provincia B"],["U. La Matanza","San Luis B"],["Hurling B","Italiano B"],["Q.H.S.","B.A.C.R.C. B"],["S. Bárbara C","Est. La Plata"]]},
+  {n:7,dia:"sáb 26 abr",partidos:[["Asociación del Sur","S. Bárbara C"],["Est. La Plata","Q.H.S."],["B.A.C.R.C. B","Hurling B"],["Italiano B","U. La Matanza"],["San Luis B","Miraflores C."],["Bco. Provincia B","AACF Quilmes"],["C. Newman","Martín Güemes"]]},
+  {n:8,dia:"sáb 03 may",partidos:[["C. Newman","Asociación del Sur"],["Martín Güemes","Bco. Provincia B"],["AACF Quilmes","San Luis B"],["Miraflores C.","Italiano B"],["U. La Matanza","B.A.C.R.C. B"],["Hurling B","Est. La Plata"],["Q.H.S.","S. Bárbara C"]]},
+  {n:9,dia:"sáb 10 may",partidos:[["Asociación del Sur","Q.H.S."],["S. Bárbara C","Hurling B"],["Est. La Plata","U. La Matanza"],["B.A.C.R.C. B","Miraflores C."],["Italiano B","AACF Quilmes"],["San Luis B","Martín Güemes"],["Bco. Provincia B","C. Newman"]]},
+  {n:10,dia:"sáb 17 may",partidos:[["Bco. Provincia B","Asociación del Sur"],["C. Newman","San Luis B"],["Martín Güemes","Italiano B"],["AACF Quilmes","B.A.C.R.C. B"],["Miraflores C.","Est. La Plata"],["U. La Matanza","S. Bárbara C"],["Hurling B","Q.H.S."]]},
+  {n:11,dia:"sáb 31 may",partidos:[["Asociación del Sur","Hurling B"],["Q.H.S.","U. La Matanza"],["S. Bárbara C","Miraflores C."],["Est. La Plata","AACF Quilmes"],["B.A.C.R.C. B","Martín Güemes"],["Italiano B","C. Newman"],["San Luis B","Bco. Provincia B"]]},
+  {n:12,dia:"sáb 07 jun",partidos:[["San Luis B","Asociación del Sur"],["Bco. Provincia B","Italiano B"],["C. Newman","B.A.C.R.C. B"],["Martín Güemes","Est. La Plata"],["AACF Quilmes","S. Bárbara C"],["Miraflores C.","Q.H.S."],["U. La Matanza","Hurling B"]]},
+  {n:13,dia:"sáb 14 jun",partidos:[["Asociación del Sur","U. La Matanza"],["Hurling B","Miraflores C."],["Q.H.S.","AACF Quilmes"],["S. Bárbara C","Martín Güemes"],["Est. La Plata","C. Newman"],["B.A.C.R.C. B","Bco. Provincia B"],["Italiano B","San Luis B"]]},
+  {n:14,dia:"sáb 21 jun",partidos:[["Italiano B","Asociación del Sur"],["B.A.C.R.C. B","San Luis B"],["Est. La Plata","Bco. Provincia B"],["S. Bárbara C","C. Newman"],["Q.H.S.","Martín Güemes"],["Hurling B","AACF Quilmes"],["U. La Matanza","Miraflores C."]]},
+  {n:15,dia:"sáb 28 jun",partidos:[["Asociación del Sur","Miraflores C."],["AACF Quilmes","U. La Matanza"],["Martín Güemes","Hurling B"],["C. Newman","Q.H.S."],["Bco. Provincia B","S. Bárbara C"],["San Luis B","Est. La Plata"],["Italiano B","B.A.C.R.C. B"]]},
+  {n:16,dia:"sáb 05 jul",partidos:[["B.A.C.R.C. B","Asociación del Sur"],["Est. La Plata","Italiano B"],["S. Bárbara C","San Luis B"],["Q.H.S.","Bco. Provincia B"],["Hurling B","C. Newman"],["U. La Matanza","Martín Güemes"],["Miraflores C.","AACF Quilmes"]]},
+  {n:17,dia:"sáb 12 jul",partidos:[["Asociación del Sur","AACF Quilmes"],["Martín Güemes","Miraflores C."],["C. Newman","U. La Matanza"],["Bco. Provincia B","Hurling B"],["San Luis B","Q.H.S."],["Italiano B","S. Bárbara C"],["B.A.C.R.C. B","Est. La Plata"]]},
+  {n:18,dia:"sáb 19 jul",partidos:[["Est. La Plata","Asociación del Sur"],["S. Bárbara C","B.A.C.R.C. B"],["Q.H.S.","Italiano B"],["Hurling B","San Luis B"],["U. La Matanza","Bco. Provincia B"],["Miraflores C.","C. Newman"],["AACF Quilmes","Martín Güemes"]]},
+  {n:19,dia:"sáb 09 ago",partidos:[["Asociación del Sur","Martín Güemes"],["C. Newman","AACF Quilmes"],["Bco. Provincia B","Miraflores C."],["San Luis B","U. La Matanza"],["Italiano B","Hurling B"],["B.A.C.R.C. B","Q.H.S."],["Est. La Plata","S. Bárbara C"]]},
+  {n:20,dia:"sáb 23 ago",partidos:[["S. Bárbara C","Asociación del Sur"],["Q.H.S.","Est. La Plata"],["Hurling B","B.A.C.R.C. B"],["U. La Matanza","Italiano B"],["Miraflores C.","San Luis B"],["AACF Quilmes","Bco. Provincia B"],["Martín Güemes","C. Newman"]]},
+  {n:21,dia:"sáb 06 sept",partidos:[["Asociación del Sur","C. Newman"],["Bco. Provincia B","Martín Güemes"],["San Luis B","AACF Quilmes"],["Italiano B","Miraflores C."],["B.A.C.R.C. B","U. La Matanza"],["Est. La Plata","Hurling B"],["S. Bárbara C","Q.H.S."]]},
+  {n:22,dia:"sáb 13 sept",partidos:[["Q.H.S.","Asociación del Sur"],["Hurling B","S. Bárbara C"],["U. La Matanza","Est. La Plata"],["Miraflores C.","B.A.C.R.C. B"],["AACF Quilmes","Italiano B"],["Martín Güemes","San Luis B"],["C. Newman","Bco. Provincia B"]]},
+  {n:23,dia:"sáb 27 sept",partidos:[["Asociación del Sur","Bco. Provincia B"],["San Luis B","C. Newman"],["Italiano B","Martín Güemes"],["B.A.C.R.C. B","AACF Quilmes"],["Est. La Plata","Miraflores C."],["S. Bárbara C","U. La Matanza"],["Q.H.S.","Hurling B"]]},
+  {n:24,dia:"sáb 04 oct",partidos:[["Hurling B","Asociación del Sur"],["U. La Matanza","Q.H.S."],["Miraflores C.","S. Bárbara C"],["AACF Quilmes","Est. La Plata"],["Martín Güemes","B.A.C.R.C. B"],["C. Newman","Italiano B"],["Bco. Provincia B","San Luis B"]]},
+  {n:25,dia:"sáb 18 oct",partidos:[["Asociación del Sur","San Luis B"],["Italiano B","Bco. Provincia B"],["B.A.C.R.C. B","C. Newman"],["Est. La Plata","Martín Güemes"],["S. Bárbara C","AACF Quilmes"],["Q.H.S.","Miraflores C."],["Hurling B","U. La Matanza"]]},
+  {n:26,dia:"sáb 01 nov",partidos:[["U. La Matanza","Asociación del Sur"],["Miraflores C.","Hurling B"],["AACF Quilmes","Q.H.S."],["Martín Güemes","S. Bárbara C"],["C. Newman","Est. La Plata"],["Bco. Provincia B","B.A.C.R.C. B"],["San Luis B","Italiano B"]]}
+];
+
+// partido donde juega BPC
+function getPartidoBPC(fecha){
+  return fecha.partidos.findIndex(p=>p[0]===BPC||p[1]===BPC);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function getResult(h,a){if(h===""||h===null||h===undefined||a===""||a===null||a===undefined)return null;const hn=parseInt(h),an=parseInt(a);if(hn>an)return"H";if(an>hn)return"A";return"D";}
+function calcPts(pred,real){if(!pred||pred.h===""||pred.h===undefined||pred.a===""||pred.a===undefined)return 0;if(!real||real.h===null||real.h===undefined||real.h===""||real.a===null||real.a===undefined||real.a==="")return 0;const ph=parseInt(pred.h),pa=parseInt(pred.a),rh=parseInt(real.h),ra=parseInt(real.a);if(ph===rh&&pa===ra)return PTS_EXACTO;if(getResult(ph,pa)===getResult(rh,ra))return PTS_RESULTADO;return 0;}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+function emptyUser(){return{predPrimera:{},predIntermedia:{},especiales:{goleadoraPrimera:"",goleadoraIntermedia:"",campeonPrimera:"",campeonIntermedia:"",masVerdesPrimera:"",masVerdesIntermedia:"",masAmarillasPrimera:"",masAmarillasIntermedia:""},golesBPC:{},tarjetasBPC:{}};}
+function initData(){return{jugadores:{},resultadosPrimera:{},resultadosIntermedia:{},especiales_resultado:{goleadoraPrimera:"",goleadoraIntermedia:"",campeonPrimera:"",campeonIntermedia:""},bloqueos:{especiales:false,fechas:{}},resultadosBPC:{},verificacionBPC:{}};}
+
+// calcular puntos normales de una division
+function calcScoreDiv(nombre,division,data){
+  const preds=division==="primera"?(data.jugadores[nombre]?.predPrimera||{}):(data.jugadores[nombre]?.predIntermedia||{});
+  const res=division==="primera"?data.resultadosPrimera:data.resultadosIntermedia;
+  const esp=data.jugadores[nombre]?.especiales||{};
+  const espR=data.especiales_resultado||{};
+  let t=0;
+  FECHAS.forEach(f=>f.partidos.forEach((_,pi)=>{
+    // skip BPC match — counted separately in calcScoreBPC
+    if(pi===getPartidoBPC(f))return;
+    const k=`${f.n}-${pi}`;const r=res[k];
+    if(r&&r.h!==null&&r.h!==undefined&&r.h!==""&&r.a!==null&&r.a!==undefined&&r.a!=="")t+=calcPts(preds[k],r);
+  }));
+  const gk=`goleadora${cap(division)}`,ck=`campeon${cap(division)}`;
+  const vk=`masVerdes${cap(division)}`,ak=`masAmarillas${cap(division)}`;
+  const overrides=espR.overrides||{};
+  const gAcerto=overrides[`${division}_goleadora_${nombre}`]===true||(espR[gk]&&esp[gk]&&esp[gk].toLowerCase().trim()===espR[gk].toLowerCase().trim());
+  if(gAcerto)t+=PTS_ESPECIAL;
+  if(espR[ck]&&esp[ck]&&esp[ck]===espR[ck])t+=PTS_ESPECIAL;
+  // tarjetas especiales (manual override only)
+  if(overrides[`${division}_masVerdes_${nombre}`]===true)t+=PTS_TARJETA_ESP;
+  if(overrides[`${division}_masAmarillas_${nombre}`]===true)t+=PTS_TARJETA_ESP;
+  return t;
+}
+
+// calcular puntos de BPC (partidos+goles+tarjetas) para un jugador
+function calcScoreBPC(nombre,division,data){
+  let t=0;
+  const preds=division==="primera"?(data.jugadores[nombre]?.predPrimera||{}):(data.jugadores[nombre]?.predIntermedia||{});
+  const res=division==="primera"?data.resultadosPrimera:data.resultadosIntermedia;
+  const verif=data.verificacionBPC||{};
+
+  FECHAS.forEach(f=>{
+    const pi=getPartidoBPC(f);
+    if(pi===-1)return;
+    const k=`${f.n}-${pi}`;
+    const divKey=`${division}_${k}`;
+
+    // puntos del resultado
+    const r=res[k];
+    if(r&&r.h!==null&&r.h!==undefined&&r.h!==""&&r.a!==null&&r.a!==undefined&&r.a!==""){
+      t+=calcPts(preds[k],r);
+    }
+
+    // puntos de goles BPC — solo si el usuario tiene predicciones guardadas
+    const golesVerif=verif[`goles_${divKey}`]||{};
+    const userGoles=data.jugadores[nombre]?.golesBPC?.[divKey]?.goles||[];
+    if(golesVerif[nombre]!==undefined && userGoles.length>0){
+      t+=golesVerif[nombre]*PTS_GOL_JUG;
+    }
+
+    // puntos de tarjetas BPC — solo si el usuario tiene predicciones guardadas
+    const tVerif=verif[`tarjetas_${divKey}`]||{};
+    const userTarjetas=data.jugadores[nombre]?.tarjetasBPC?.[divKey]?.tarjetas||[];
+    if(tVerif[nombre] && userTarjetas.length>0){
+      if(tVerif[nombre].jug) t+=PTS_TARJETAS_JUG;
+      else if(tVerif[nombre].num) t+=PTS_TARJETAS_NUM;
+    }
+  });
+  return t;
+}
+
+function localLoad(){try{const d=localStorage.getItem(STORAGE_KEY);return d?JSON.parse(d):null;}catch{return null;}}
+function localSave(d){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(d));}catch{}}
+async function cloudLoad(){const r=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}/latest`,{headers:{"X-Master-Key":JSONBIN_KEY,"X-Bin-Meta":"false"}});if(!r.ok)throw new Error();return await r.json();}
+async function cloudSave(d){const r=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_ID}`,{method:"PUT",headers:{"Content-Type":"application/json","X-Master-Key":JSONBIN_KEY},body:JSON.stringify(d)});if(!r.ok)throw new Error();}
+
+function migrateData(d){
+  if(!d)d=initData();
+  if(!d.bloqueos)d.bloqueos={especiales:false,fechas:{}};
+  if(!d.resultadosBPC)d.resultadosBPC={};
+  if(!d.verificacionBPC)d.verificacionBPC={};
+  Object.keys(d.jugadores||{}).forEach(n=>{
+    if(!d.jugadores[n].golesBPC)d.jugadores[n].golesBPC={};
+    if(!d.jugadores[n].tarjetasBPC)d.jugadores[n].tarjetasBPC={};
+  });
+  return d;
+}
+
+// ─── SYNC BADGE ───────────────────────────────────────────────────────────────
+function SyncBadge({s}){
+  const m={syncing:{c:"#ffcc44",t:"⟳ Guardando..."},ok:{c:"#44ff88",t:"☁ En la nube"},error:{c:"#ff6644",t:"⚠ Sin conexión"}};
+  const x=m[s]||m.ok;
+  return <span style={{fontSize:10,color:x.c,fontWeight:700}}>{x.t}</span>;
+}
+
+// ─── RANKING LIST ─────────────────────────────────────────────────────────────
+function RankingList({rows,label,subtitle}){
+  const R="#e53030",RM="#2a0808",RB="#5a1010",GR="#884444";
+  return(
+    <div>
+      <div style={{marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:800,color:R,letterSpacing:"0.1em"}}>{label}</div>
+        <div style={{fontSize:11,color:GR}}>{subtitle}</div>
+      </div>
+      {rows.length===0&&<div style={{color:GR,textAlign:"center",padding:40}}>Nadie jugando todavía.</div>}
+      {rows.map((p,i)=>(
+        <div key={p.nombre} style={{background:p.yo?"#2a0000":RM,border:`1px solid ${p.yo?R:RB}`,borderRadius:10,padding:"12px 14px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:28,height:28,borderRadius:"50%",background:i===0?"#ffd700":i===1?"#aaa":i===2?"#cd7f32":"#3a0808",color:i<3?"#000":"#664444",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900,flexShrink:0}}>{i+1}</div>
+          <div style={{flex:1,fontWeight:700,fontSize:15,color:p.yo?R:"#ffcccc"}}>{p.nombre}{p.yo?" ← vos":""}</div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:26,fontWeight:900,color:i===0?"#ffd700":i===1?"#ccc":i===2?"#cd7f32":"#fff"}}>{p.score}</div>
+            {p.detalle&&<div style={{fontSize:9,color:GR,marginTop:-2}}>{p.detalle}</div>}
+          </div>
+          <div style={{fontSize:10,color:GR,marginLeft:-6}}>pts</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+function LoginScreen({nameInput,setNameInput,passInput,setPassInput,loginMode,setLoginMode,loginError,onLogin,existingUsers,loading}){
+  const R="#e53030",RD="#1a0000",RM="#2a0808",RB="#5a1010",GR="#884444";
+  return(
+    <div style={{minHeight:"100vh",background:RD,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{width:"100%",maxWidth:380}}>
+        <div style={{textAlign:"center",marginBottom:32}}>
+          <div style={{fontSize:52,marginBottom:8}}>🏑</div>
+          <div style={{fontSize:30,fontWeight:900,color:"#fff",letterSpacing:"0.04em"}}>PRODE <span style={{color:R}}>2026</span></div>
+          <div style={{fontSize:12,color:GR,marginTop:4,letterSpacing:"0.1em"}}>BANQUITO B</div>
+        </div>
+        <div style={{display:"flex",background:RM,borderRadius:12,padding:4,marginBottom:20}}>
+          {[["usuario","👤 USUARIA"],["admin","🔑 ADMINISTRADORA"]].map(([m,l])=>(
+            <button key={m} onClick={()=>setLoginMode(m)} style={{flex:1,background:loginMode===m?R:"none",border:"none",borderRadius:9,padding:"10px",fontSize:12,fontWeight:800,color:loginMode===m?"#fff":GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{l}</button>
+          ))}
+        </div>
+        <div style={{background:RM,border:`1px solid ${RB}`,borderRadius:16,padding:24}}>
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:11,fontWeight:700,color:GR,letterSpacing:"0.1em",marginBottom:6}}>TU NOMBRE</div>
+            <input value={nameInput} onChange={e=>setNameInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!loading&&onLogin()} placeholder="Ingresá tu nombre..." style={{width:"100%",background:RD,border:`2px solid ${RB}`,borderRadius:9,padding:"11px 14px",color:"#fff",fontSize:15,fontFamily:"'Outfit',sans-serif"}}/>
+          </div>
+          {loginMode==="admin"&&(
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:GR,letterSpacing:"0.1em",marginBottom:6}}>CLAVE</div>
+              <input type="password" value={passInput} onChange={e=>setPassInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!loading&&onLogin()} placeholder="••••••••" style={{width:"100%",background:RD,border:`2px solid ${RB}`,borderRadius:9,padding:"11px 14px",color:"#fff",fontSize:15,fontFamily:"'Outfit',sans-serif"}}/>
+            </div>
+          )}
+          {loginError&&<div style={{color:"#ff6666",fontSize:12,marginBottom:10,fontWeight:600}}>⚠ {loginError}</div>}
+          <button onClick={onLogin} disabled={loading||!nameInput.trim()} style={{width:"100%",background:nameInput.trim()&&!loading?R:"#3a0808",border:"none",borderRadius:10,padding:"13px",fontSize:16,fontWeight:900,color:nameInput.trim()&&!loading?"#fff":"#553333",cursor:loading?"wait":"pointer",fontFamily:"'Outfit',sans-serif"}}>
+            {loading?"Conectando...":loginMode==="admin"?"ENTRAR COMO ADMIN →":"ENTRAR AL PRODE →"}
+          </button>
+        </div>
+        {existingUsers.length>0&&<div style={{textAlign:"center",marginTop:14,fontSize:11,color:"#553333"}}>Ya en el prode: {existingUsers.join(", ")}</div>}
+        <div style={{textAlign:"center",marginTop:10}}><SyncBadge s="ok"/></div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ADMIN PANEL DE BLOQUEOS + USUARIAS ───────────────────────────────────────
+function AdminBloqueos({data,persist}){
+  const R="#e53030",RD="#1a0000",RM="#2a0808",RB="#5a1010",GR="#884444";
+  const bloqueos=data.bloqueos||{especiales:false,fechas:{}};
+  const [confirmar,setConfirmar]=useState(null);
+
+  function toggleEsp(){persist({...data,bloqueos:{...bloqueos,especiales:!bloqueos.especiales}});}
+  function toggleFecha(n){const actual=bloqueos.fechas?.[n]||false;persist({...data,bloqueos:{...bloqueos,fechas:{...bloqueos.fechas,[n]:!actual}}});}
+  function bloquearTodas(){const t={};FECHAS.forEach(f=>{t[f.n]=true;});persist({...data,bloqueos:{...bloqueos,fechas:t}});}
+  function desbloquearTodas(){persist({...data,bloqueos:{...bloqueos,fechas:{}}});}
+  function borrarUsuario(nombre){const nj={...data.jugadores};delete nj[nombre];persist({...data,jugadores:nj});setConfirmar(null);}
+  function limpiarVerifFecha(n){
+    const nv={...data.verificacionBPC};
+    Object.keys(nv).forEach(k=>{if(k.includes(`_${n}-`))delete nv[k];});
+    persist({...data,verificacionBPC:nv});
+  }
+  function limpiarFechaCompleta(n){
+    // borra resultados, predicciones de todos los jugadores, y verificacion BPC de una fecha
+    const nprim={...data.resultadosPrimera};
+    const nint={...data.resultadosIntermedia};
+    Object.keys(nprim).filter(k=>k.startsWith(`${n}-`)).forEach(k=>delete nprim[k]);
+    Object.keys(nint).filter(k=>k.startsWith(`${n}-`)).forEach(k=>delete nint[k]);
+    const nv={...data.verificacionBPC};
+    Object.keys(nv).forEach(k=>{if(k.includes(`_${n}-`))delete nv[k];});
+    const nj={...data.jugadores};
+    Object.keys(nj).forEach(nom=>{
+      const u={...nj[nom]};
+      if(u.predPrimera){const p={...u.predPrimera};Object.keys(p).filter(k=>k.startsWith(`${n}-`)).forEach(k=>delete p[k]);u.predPrimera=p;}
+      if(u.predIntermedia){const p={...u.predIntermedia};Object.keys(p).filter(k=>k.startsWith(`${n}-`)).forEach(k=>delete p[k]);u.predIntermedia=p;}
+      if(u.golesBPC){const g={...u.golesBPC};Object.keys(g).filter(k=>k.includes(`_${n}-`)).forEach(k=>delete g[k]);u.golesBPC=g;}
+      if(u.tarjetasBPC){const t={...u.tarjetasBPC};Object.keys(t).filter(k=>k.includes(`_${n}-`)).forEach(k=>delete t[k]);u.tarjetasBPC=t;}
+      nj[nom]=u;
+    });
+    persist({...data,resultadosPrimera:nprim,resultadosIntermedia:nint,verificacionBPC:nv,jugadores:nj});
+  }
+  const jugadores=Object.keys(data.jugadores);
+
+  return(
+    <div>
+      <div style={{background:"#2a0000",border:`2px solid ${R}`,borderRadius:12,padding:"16px",marginBottom:16}}>
+        <div style={{fontSize:13,fontWeight:900,color:R,letterSpacing:"0.08em",marginBottom:14}}>🗑️ USUARIAS REGISTRADAS</div>
+        {jugadores.length===0&&<div style={{color:GR,fontSize:12}}>No hay usuarias todavía.</div>}
+        {jugadores.map(nombre=>(
+          <div key={nombre} style={{background:RM,border:`1px solid ${RB}`,borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{fontWeight:700,fontSize:14,color:"#ffcccc"}}>👤 {nombre}</div>
+            {confirmar===nombre
+              ?<div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:11,color:"#ff6666"}}>¿Segura?</span>
+                <button onClick={()=>borrarUsuario(nombre)} style={{background:"#5a0000",border:`1px solid ${R}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:800,color:"#ff4444",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>Sí, sacar</button>
+                <button onClick={()=>setConfirmar(null)} style={{background:RM,border:`1px solid ${RB}`,borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:800,color:GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>Cancelar</button>
+              </div>
+              :<button onClick={()=>setConfirmar(nombre)} style={{background:"#2a0000",border:"1px solid #5a1010",borderRadius:7,padding:"5px 12px",fontSize:12,fontWeight:700,color:"#ff6666",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>🗑️ Sacar</button>
+            }
+          </div>
+        ))}
+      </div>
+      <div style={{background:"#2a0000",border:`2px solid ${R}`,borderRadius:12,padding:"16px",marginBottom:20}}>
+        <div style={{fontSize:13,fontWeight:900,color:R,letterSpacing:"0.08em",marginBottom:14}}>🔑 PANEL DE BLOQUEOS</div>
+        <div style={{background:RM,border:`1px solid ${RB}`,borderRadius:10,padding:"12px 14px",marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:700,color:"#ffcccc"}}>⭐ Especiales</div>
+            <div style={{fontSize:11,color:GR,marginTop:2}}>Goleadora y campeón</div>
+          </div>
+          <button onClick={toggleEsp} style={{background:bloqueos.especiales?"#3a0000":R,border:`2px solid ${bloqueos.especiales?"#ff4444":R}`,borderRadius:9,padding:"8px 16px",fontSize:13,fontWeight:900,color:"#fff",cursor:"pointer",fontFamily:"'Outfit',sans-serif",minWidth:110}}>
+            {bloqueos.especiales?"🔒 BLOQUEADO":"🔓 ABIERTO"}
+          </button>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <button onClick={desbloquearTodas} style={{flex:1,background:"#082008",border:"1px solid #1a6600",borderRadius:8,padding:"8px",fontSize:11,fontWeight:800,color:"#66ff66",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>🔓 Abrir todas</button>
+          <button onClick={bloquearTodas} style={{flex:1,background:"#2a0000",border:"1px solid #5a1010",borderRadius:8,padding:"8px",fontSize:11,fontWeight:800,color:"#ff6666",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>🔒 Cerrar todas</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:8}}>
+          {FECHAS.map(f=>{
+            const bloq=bloqueos.fechas?.[f.n]||false;
+            return(
+              <button key={f.n} onClick={()=>toggleFecha(f.n)} style={{background:bloq?"#2a0000":RM,border:`1px solid ${bloq?"#5a1010":"#1a6600"}`,borderRadius:9,padding:"10px 8px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",textAlign:"center"}}>
+                <div style={{fontSize:12,fontWeight:900,color:bloq?"#ff4444":"#66ff66"}}>F{f.n} {bloq?"🔒":"🔓"}</div>
+                <div style={{fontSize:10,color:GR,marginTop:2}}>{f.dia}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* LIMPIAR DATOS */}
+      <div style={{background:"#1a0a00",border:"1px solid #4a2200",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+        <div style={{fontSize:13,fontWeight:900,color:"#ffcc44",letterSpacing:"0.08em",marginBottom:4}}>🧹 LIMPIAR DATOS POR FECHA</div>
+        <div style={{fontSize:11,color:"#884400",marginBottom:12}}>Borra <strong style={{color:"#ffaa44"}}>todo</strong> de una fecha: resultados, predicciones de todas y verificación BPC.</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:6}}>
+          {FECHAS.map(f=>{
+            const tieneRes=Object.keys(data.resultadosPrimera||{}).some(k=>k.startsWith(`${f.n}-`))||Object.keys(data.resultadosIntermedia||{}).some(k=>k.startsWith(`${f.n}-`));
+            const tienePred=Object.values(data.jugadores||{}).some(u=>Object.keys(u.predPrimera||{}).some(k=>k.startsWith(`${f.n}-`))||Object.keys(u.predIntermedia||{}).some(k=>k.startsWith(`${f.n}-`)));
+            const tieneVerif=Object.keys(data.verificacionBPC||{}).some(k=>k.includes(`_${f.n}-`));
+            const tiene=tieneRes||tienePred||tieneVerif;
+            return(
+              <button key={f.n} onClick={()=>{if(window.confirm(`¿Borrar TODOS los datos de la Fecha ${f.n}? Esto incluye resultados, pronósticos de todas y verificación BPC.`))limpiarFechaCompleta(f.n);}} disabled={!tiene} style={{background:tiene?"#2a0a00":"#150000",border:`1px solid ${tiene?"#4a2200":"#2a0000"}`,borderRadius:8,padding:"8px 6px",cursor:tiene?"pointer":"default",fontFamily:"'Outfit',sans-serif",textAlign:"center",opacity:tiene?1:0.35}}>
+                <div style={{fontSize:11,fontWeight:900,color:tiene?"#ffaa44":"#443333"}}>F{f.n}</div>
+                <div style={{fontSize:9,color:tiene?"#884400":"#332200",marginTop:1}}>{tiene?"🧹 borrar todo":"vacía"}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ESPIAR TAB ──────────────────────────────────────────────────────────────
+function EspiarTab({data,userName,division,bloqueos,resultados}){
+  const R="#e53030",RD="#1a0000",RM="#2a0808",RB="#5a1010",GR="#884444";
+  const [fechaIdx,setFechaIdx]=useState(0);
+  const [verJugadora,setVerJugadora]=useState(null);
+  const fecha=FECHAS[fechaIdx];
+  const fechaBloq=bloqueos.fechas?.[fecha.n]||false;
+  const jugadores=Object.keys(data.jugadores);
+  const navBtn=dis=>({background:RM,border:`1px solid ${RB}`,borderRadius:8,width:36,height:36,color:R,fontSize:22,cursor:dis?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:dis?0.25:1,flexShrink:0});
+
+  return(
+    <div>
+      <div style={{background:RM,border:`1px solid ${RB}`,borderRadius:12,padding:"11px 15px",marginBottom:14,fontSize:12,color:GR}}>
+        👀 Solo podés ver pronósticos de fechas <span style={{color:"#ff4444",fontWeight:700}}>bloqueadas</span> por la admin.
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <button onClick={()=>fechaIdx>0&&setFechaIdx(i=>i-1)} style={navBtn(fechaIdx===0)}>‹</button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:20,fontWeight:900,color:fechaBloq?R:"#553333"}}>FECHA {fecha.n}</div>
+          <div style={{fontSize:12,color:GR}}>{fecha.dia} · {division==="primera"?"PRIMERA":"INTERMEDIA"}</div>
+          {fechaBloq?<div style={{fontSize:11,color:"#ff4444",fontWeight:700,marginTop:2}}>🔒 Pronósticos visibles</div>
+            :<div style={{fontSize:11,color:GR,marginTop:2}}>🔓 Aún no bloqueada</div>}
+        </div>
+        <button onClick={()=>fechaIdx<FECHAS.length-1&&setFechaIdx(i=>i+1)} style={navBtn(fechaIdx===FECHAS.length-1)}>›</button>
+      </div>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:16}}>
+        {FECHAS.map((f,i)=>{
+          const bl=bloqueos.fechas?.[f.n]||false;
+          return<button key={f.n} onClick={()=>{setFechaIdx(i);setVerJugadora(null);}} style={{background:fechaIdx===i?R:RM,border:`1px solid ${fechaIdx===i?R:bl?"#e5303055":RB}`,borderRadius:6,padding:"3px 8px",fontSize:11,fontWeight:700,color:fechaIdx===i?"#fff":bl?R:GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{f.n}{bl?"🔒":""}</button>;
+        })}
+      </div>
+      {!fechaBloq&&(
+        <div style={{background:"#200000",border:`1px solid ${RB}`,borderRadius:12,padding:"30px",textAlign:"center",color:"#553333",fontSize:14,fontWeight:700}}>
+          🔓 Esta fecha todavía está abierta.<br/>
+          <span style={{fontSize:12,fontWeight:400,color:GR}}>Los pronósticos se revelan cuando la admin la bloquee.</span>
+        </div>
+      )}
+      {fechaBloq&&(
+        <div>
+          {bloqueos.especiales&&(
+            <div style={{background:"#200000",border:`2px solid ${R}`,borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:900,color:R,letterSpacing:"0.08em",marginBottom:12}}>⭐ ESPECIALES DE TODAS</div>
+              {[["Primera","primera"],["Intermedia","intermedia"]].map(([label,div])=>{
+                const gk=`goleadora${cap(div)}`,ck=`campeon${cap(div)}`;
+                const espRes=data.especiales_resultado||{};
+                const jf=verJugadora?[verJugadora]:jugadores;
+                return(
+                  <div key={div} style={{marginBottom:14}}>
+                    <div style={{fontSize:11,fontWeight:800,color:R,letterSpacing:"0.1em",marginBottom:8,borderBottom:"1px solid #3a0000",paddingBottom:4}}>{label.toUpperCase()}</div>
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10,color:GR,marginBottom:4}}>⚽ GOLEADORA</div>
+                      {jf.map(nom=>{const esp=data.jugadores[nom]?.especiales||{};const val=esp[gk];if(!val)return null;const acerto=espRes[gk]&&val.toLowerCase().trim()===espRes[gk].toLowerCase().trim();const yo=nom===userName;return(<div key={nom} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:yo?"#2a0000":"#150000",border:`1px solid ${yo?R:"#2a0000"}`,borderRadius:7,padding:"5px 10px",marginBottom:3}}><span style={{fontSize:12,fontWeight:yo?800:500,color:yo?R:"#cc9999"}}>{yo?"→ ":""}{nom}</span><div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontSize:12,color:yo?R:"#ffcccc"}}>{val}</span>{espRes[gk]&&<span style={{fontSize:13,color:acerto?"#ffd700":"#553333"}}>{acerto?"⭐":"✗"}</span>}</div></div>);}).filter(Boolean)}
+                    </div>
+                    <div>
+                      <div style={{fontSize:10,color:GR,marginBottom:4}}>🏆 CAMPEÓN</div>
+                      {jf.map(nom=>{const esp=data.jugadores[nom]?.especiales||{};const val=esp[ck];if(!val)return null;const acerto=espRes[ck]&&val===espRes[ck];const yo=nom===userName;return(<div key={nom} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:yo?"#2a0000":"#150000",border:`1px solid ${yo?R:"#2a0000"}`,borderRadius:7,padding:"5px 10px",marginBottom:3}}><span style={{fontSize:12,fontWeight:yo?800:500,color:yo?R:"#cc9999"}}>{yo?"→ ":""}{nom}</span><div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontSize:12,color:yo?R:"#ffcccc"}}>{val}</span>{espRes[ck]&&<span style={{fontSize:13,color:acerto?"#ffd700":"#553333"}}>{acerto?"⭐":"✗"}</span>}</div></div>);}).filter(Boolean)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {!bloqueos.especiales&&<div style={{background:"#150000",border:"1px solid #2a0000",borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:12,color:GR,textAlign:"center"}}>⭐ Los especiales se revelan cuando la admin los bloquee.</div>}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+            <button onClick={()=>setVerJugadora(null)} style={{background:verJugadora===null?R:RM,border:`1px solid ${verJugadora===null?R:RB}`,borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:800,color:verJugadora===null?"#fff":GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>📊 Todas</button>
+            {jugadores.map(nom=>(
+              <button key={nom} onClick={()=>setVerJugadora(nom)} style={{background:verJugadora===nom?(nom===userName?R:"#1a3300"):RM,border:`1px solid ${verJugadora===nom?(nom===userName?R:"#336600"):RB}`,borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:800,color:verJugadora===nom?(nom===userName?R:"#66ff66"):GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>
+                {nom===userName?"→ ":""}{nom}
+              </button>
+            ))}
+          </div>
+          {fecha.partidos.map((partido,pi)=>{
+            const key=`${fecha.n}-${pi}`;
+            const real=resultados[key];
+            const hasReal=real&&real.h!==null&&real.h!==undefined&&real.h!==""&&real.a!==null&&real.a!==undefined&&real.a!=="";
+            const jf=verJugadora?[verJugadora]:jugadores;
+            const preds=jf.map(nom=>{
+              const u=data.jugadores[nom];const pp=division==="primera"?u?.predPrimera:u?.predIntermedia;const p=pp?.[key];
+              if(!p||p.h===undefined||p.h===""||p.a===undefined||p.a==="")return null;
+              const pts=hasReal?calcPts(p,real):null;return{nom,h:p.h,a:p.a,pts,yo:nom===userName};
+            }).filter(Boolean);
+            return(
+              <div key={pi} style={{background:RM,border:`1px solid ${RB}`,borderRadius:12,padding:"12px 14px",marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontSize:11,color:GR,letterSpacing:"0.08em"}}>PARTIDO {pi+1}</div>
+                  {hasReal&&<div style={{fontSize:12,fontWeight:800,color:R}}>Real: {real.h} — {real.a}</div>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:6,alignItems:"center",marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:700,textAlign:"right",lineHeight:1.2,color:"#ffcccc"}}>{partido[0]}</div>
+                  <div style={{fontSize:12,color:GR,fontWeight:700}}>vs</div>
+                  <div style={{fontSize:13,fontWeight:700,textAlign:"left",lineHeight:1.2,color:"#ffcccc"}}>{partido[1]}</div>
+                </div>
+                {preds.length===0?<div style={{textAlign:"center",fontSize:11,color:GR,padding:"8px 0"}}>Nadie cargó pronóstico.</div>
+                  :<div style={{display:"flex",flexDirection:"column",gap:4}}>
+                    {preds.sort((a,b)=>(b.pts||0)-(a.pts||0)).map(p=>(
+                      <div key={p.nom} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:p.yo?"#2a0000":"#150000",border:`1px solid ${p.yo?R:"#2a0000"}`,borderRadius:7,padding:"6px 12px"}}>
+                        <span style={{fontSize:12,fontWeight:p.yo?800:500,color:p.yo?R:"#cc9999"}}>{p.yo?"→ ":""}{p.nom}</span>
+                        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                          <span style={{fontSize:14,fontWeight:900,color:p.yo?R:"#ffcccc"}}>{p.h} — {p.a}</span>
+                          {p.pts!==null&&<span style={{fontSize:13,color:p.pts===3?"#ffd700":p.pts===1?"#ff8866":"#553333"}}>{p.pts===3?"⭐":p.pts===1?"✓":"✗"}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                }
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── BPC TAB (predicciones goles y tarjetas de Banco Provincia) ───────────────
+function BPCTab({data,userName,division,bloqueos,persist,isAdmin}){
+  const R="#e53030",RD="#1a0000",RM="#2a0808",RB="#5a1010",GR="#884444";
+  const [fechaIdx,setFechaIdx]=useState(0);
+  const [saved,setSaved]=useState(false);
+  const fecha=FECHAS[fechaIdx];
+  const fechaBloq=bloqueos.fechas?.[fecha.n]||false;
+  const piB=getPartidoBPC(fecha);
+  const navBtn=dis=>({background:RM,border:`1px solid ${RB}`,borderRadius:8,width:36,height:36,color:R,fontSize:22,cursor:dis?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:dis?0.25:1,flexShrink:0});
+  const divKey=`${division}_${fecha.n}-${piB}`;
+
+  const myUser=data.jugadores[userName]||emptyUser();
+  const myGoles=myUser.golesBPC?.[divKey]||{goles:[]};
+  const myTarjetas=myUser.tarjetasBPC?.[divKey]||{tarjetas:[]};
+  // goles: [{jugadora, cantidad}]
+  // tarjetas: [{tipo, jugadora}]
+
+  function saveGoles(newGoles){
+    const nu={...myUser,golesBPC:{...myUser.golesBPC,[divKey]:{goles:newGoles}}};
+    persist({...data,jugadores:{...data.jugadores,[userName]:nu}});
+    setSaved(true);setTimeout(()=>setSaved(false),2000);
+  }
+  function saveTarjetas(newT){
+    const nu={...myUser,tarjetasBPC:{...myUser.tarjetasBPC,[divKey]:{tarjetas:newT}}};
+    persist({...data,jugadores:{...data.jugadores,[userName]:nu}});
+    setSaved(true);setTimeout(()=>setSaved(false),2000);
+  }
+
+  // Admin: verificacion
+  const verif=data.verificacionBPC||{};
+  const golesVerif=verif[`goles_${divKey}`]||{};
+  const tVerif=verif[`tarjetas_${divKey}`]||{};
+  const jugadores=Object.keys(data.jugadores);
+
+  function setGolesVerif(nombre,cant){
+    const nv={...verif,[`goles_${divKey}`]:{...golesVerif,[nombre]:cant}};
+    persist({...data,verificacionBPC:nv});
+  }
+  function setTVerif(nombre,tipo,val){
+    const cur=tVerif[nombre]||{num:false,jug:false};
+    let nEntry;
+    if(tipo==="jug")nEntry={num:val?true:cur.num,jug:val};
+    else nEntry={...cur,[tipo]:val};
+    const nv={...verif,[`tarjetas_${divKey}`]:{...tVerif,[nombre]:nEntry}};
+    persist({...data,verificacionBPC:nv});
+  }
+
+  if(piB===-1){
+    return <div style={{background:RM,border:`1px solid ${RB}`,borderRadius:12,padding:30,textAlign:"center",color:GR,marginTop:10}}>Bco. Provincia B no juega en esta fecha.</div>;
+  }
+  const partido=fecha.partidos[piB];
+
+  return(
+    <div>
+      <div style={{background:"#1a0a00",border:"1px solid #4a2200",borderRadius:12,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#ffaa44"}}>
+        🏑 Predicciones especiales para partidos de <span style={{fontWeight:900,color:"#ffcc44"}}>Bco. Provincia B</span>
+      </div>
+
+      {/* Nav fecha */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <button onClick={()=>fechaIdx>0&&setFechaIdx(i=>i-1)} style={navBtn(fechaIdx===0)}>‹</button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:20,fontWeight:900,color:fechaBloq?"#553333":"#ffcc44"}}>FECHA {fecha.n}</div>
+          <div style={{fontSize:12,color:GR}}>{fecha.dia} · {division==="primera"?"PRIMERA":"INTERMEDIA"}</div>
+          {fechaBloq&&<div style={{fontSize:11,color:"#ff4444",fontWeight:700,marginTop:2}}>🔒 Cerrada</div>}
+        </div>
+        <button onClick={()=>fechaIdx<FECHAS.length-1&&setFechaIdx(i=>i+1)} style={navBtn(fechaIdx===FECHAS.length-1)}>›</button>
+      </div>
+
+      {/* Pills fechas donde juega BPC */}
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14}}>
+        {FECHAS.map((f,i)=>{
+          const piB2=getPartidoBPC(f);if(piB2===-1)return null;
+          const bl=bloqueos.fechas?.[f.n]||false;
+          return<button key={f.n} onClick={()=>setFechaIdx(i)} style={{background:fechaIdx===i?"#ffcc44":RM,border:`1px solid ${fechaIdx===i?"#ffcc44":bl?"#4a220055":RB}`,borderRadius:6,padding:"3px 8px",fontSize:11,fontWeight:700,color:fechaIdx===i?"#000":bl?"#664400":GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{f.n}{bl?"🔒":""}</button>;
+        })}
+      </div>
+
+      {/* Partido */}
+      <div style={{background:"#1a0a00",border:"2px solid #4a2200",borderRadius:12,padding:"12px 14px",marginBottom:16}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:6,alignItems:"center"}}>
+          <div style={{fontSize:14,fontWeight:partido[0]===BPC?900:600,textAlign:"right",color:partido[0]===BPC?"#ffcc44":"#ffcccc"}}>{partido[0]}</div>
+          <div style={{fontSize:12,color:GR,fontWeight:700}}>vs</div>
+          <div style={{fontSize:14,fontWeight:partido[1]===BPC?900:600,textAlign:"left",color:partido[1]===BPC?"#ffcc44":"#ffcccc"}}>{partido[1]}</div>
+        </div>
+      </div>
+
+      {/* GOLES */}
+      <GolesBPC key={`g_${divKey}`} goles={myGoles.goles||[]} bloq={fechaBloq} onSave={saveGoles}/>
+
+      {/* TARJETAS */}
+      <TarjetasBPC key={`t_${divKey}`} tarjetas={myTarjetas.tarjetas||[]} bloq={fechaBloq} onSave={saveTarjetas}/>
+
+      {saved&&<div style={{background:"#082008",border:"1px solid #1a6600",borderRadius:10,padding:"10px",textAlign:"center",color:"#66ff66",fontWeight:800,fontSize:13,marginTop:8}}>✓ Guardado</div>}
+
+      {/* ADMIN VERIFICACION — por partido */}
+      {isAdmin&&fechaBloq&&(
+        <div style={{background:"#2a0000",border:`2px solid ${R}`,borderRadius:12,padding:"14px 16px",marginTop:16}}>
+          <div style={{fontSize:13,fontWeight:900,color:R,letterSpacing:"0.08em",marginBottom:2}}>🔑 VERIFICACIÓN ADMIN</div>
+          <div style={{fontSize:11,color:GR,marginBottom:14}}>+{PTS_GOL_JUG}pts por gol acertado · +{PTS_TARJETAS_NUM}pts nº tarjeta · +{PTS_TARJETAS_JUG}pts nº+jugadora</div>
+
+          {/* ── SECCIÓN GOLES ── */}
+          <div style={{marginBottom:20}}>
+            <div style={{fontSize:12,fontWeight:900,color:"#ffcc44",letterSpacing:"0.08em",marginBottom:10,borderBottom:"1px solid #4a2200",paddingBottom:6}}>⚽ GOLES</div>
+            {jugadores.filter(nom=>( data.jugadores[nom]?.golesBPC?.[divKey]?.goles||[]).length>0).length===0&&(
+              <div style={{fontSize:11,color:"#443333",fontStyle:"italic",padding:"8px 0"}}>Nadie predijo goles en esta fecha.</div>
+            )}
+            {jugadores.map(nom=>{
+              const gU=data.jugadores[nom]?.golesBPC?.[divKey]?.goles||[];
+              if(gU.length===0)return null;
+              const golesAcertados=golesVerif[nom]||0;
+              return(
+                <div key={nom} style={{background:RM,border:`1px solid ${RB}`,borderRadius:10,padding:"10px 14px",marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#ffcccc"}}>👤 {nom}</div>
+                    <div style={{fontSize:11,color:"#ffcc44",fontWeight:700}}>+{golesAcertados*PTS_GOL_JUG}pts</div>
+                  </div>
+                  <div style={{marginBottom:8}}>
+                    {gU.map((g,gi)=>(
+                      <div key={gi} style={{fontSize:12,color:"#ccaaaa",marginBottom:2}}>
+                        <span style={{color:"#ffcc44",fontWeight:700}}>{g.cantidad}×</span> {g.jugadora||<em style={{color:"#553333"}}>sin nombre</em>}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:11,color:GR}}>Goles acertados:</span>
+                    <div style={{display:"flex",gap:4}}>
+                      {[0,1,2,3,4,5].map(n=>(
+                        <button key={n} onClick={()=>setGolesVerif(nom,n)} style={{background:golesAcertados===n?"#ffcc44":RD,border:`1px solid ${golesAcertados===n?"#ffcc44":RB}`,borderRadius:6,width:30,height:30,fontSize:13,fontWeight:900,color:golesAcertados===n?"#000":GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{n}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── SECCIÓN TARJETAS ── */}
+          <div>
+            <div style={{fontSize:12,fontWeight:900,color:"#ffcc44",letterSpacing:"0.08em",marginBottom:10,borderBottom:"1px solid #4a2200",paddingBottom:6}}>🟨 TARJETAS</div>
+            {jugadores.filter(nom=>(data.jugadores[nom]?.tarjetasBPC?.[divKey]?.tarjetas||[]).length>0).length===0&&(
+              <div style={{fontSize:11,color:"#443333",fontStyle:"italic",padding:"8px 0"}}>Nadie predijo tarjetas en esta fecha.</div>
+            )}
+            {jugadores.map(nom=>{
+              const tU=data.jugadores[nom]?.tarjetasBPC?.[divKey]?.tarjetas||[];
+              if(tU.length===0)return null;
+              const tv=tVerif[nom]||{num:false,jug:false};
+              const COLOR_T={verde:"#44ff66",amarilla:"#ffcc00",roja:"#ff3333"};
+              return(
+                <div key={nom} style={{background:RM,border:`1px solid ${RB}`,borderRadius:10,padding:"10px 14px",marginBottom:8}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#ffcccc"}}>👤 {nom}</div>
+                    <div style={{fontSize:11,color:"#ffcc44",fontWeight:700}}>+{tv.jug?PTS_TARJETAS_JUG:tv.num?PTS_TARJETAS_NUM:0}pts</div>
+                  </div>
+                  <div style={{marginBottom:10}}>
+                    {tU.map((t,ti)=>(
+                      <div key={ti} style={{fontSize:12,color:"#ccaaaa",marginBottom:2,display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontWeight:800,color:COLOR_T[t.tipo]||"#fff"}}>{t.tipo}</span>
+                        <span>—</span>
+                        <span style={{color:"#ffcccc"}}>{t.jugadora||<em style={{color:"#553333"}}>sin nombre</em>}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <button onClick={()=>{if(tv.num){setTVerif(nom,"jug",false);setTVerif(nom,"num",false);}else{setTVerif(nom,"num",true);setTVerif(nom,"jug",false);}}} style={{flex:1,background:tv.num&&!tv.jug?"#1a2200":"#150000",border:`1px solid ${tv.num&&!tv.jug?"#5a8800":RB}`,borderRadius:8,padding:"8px 10px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",textAlign:"left"}}>
+                      <div style={{fontSize:11,fontWeight:800,color:tv.num&&!tv.jug?"#aaff44":GR}}>✓ Nº correcto</div>
+                      <div style={{fontSize:10,color:tv.num&&!tv.jug?"#88cc22":"#443333"}}>+{PTS_TARJETAS_NUM} pts</div>
+                    </button>
+                    <button onClick={()=>{if(tv.jug){setTVerif(nom,"jug",false);setTVerif(nom,"num",false);}else{setTVerif(nom,"jug",true);setTVerif(nom,"num",true);}}} style={{flex:1,background:tv.jug?"#1a4400":"#150000",border:`1px solid ${tv.jug?"#44aa00":RB}`,borderRadius:8,padding:"8px 10px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",textAlign:"left"}}>
+                      <div style={{fontSize:11,fontWeight:800,color:tv.jug?"#66ff44":GR}}>⭐ Nº + Jugadora</div>
+                      <div style={{fontSize:10,color:tv.jug?"#44cc22":"#443333"}}>+{PTS_TARJETAS_JUG} pts</div>
+                    </button>
+                    <button onClick={()=>{setTVerif(nom,"jug",false);setTVerif(nom,"num",false);}} style={{background:"#2a0000",border:`1px solid ${RB}`,borderRadius:8,padding:"8px 10px",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>
+                      <div style={{fontSize:11,color:"#884444"}}>✗</div>
+                      <div style={{fontSize:10,color:"#553333"}}>0 pts</div>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── GOLES INPUT ──────────────────────────────────────────────────────────────
+function GolesBPC({goles,bloq,onSave}){
+  const R="#e53030",RD="#1a0000",RM="#2a0808",RB="#5a1010",GR="#884444";
+  const [list,setList]=useState(goles.length>0?goles:[{jugadora:"",cantidad:1}]);
+  const [dirty,setDirty]=useState(false);
+
+  function add(){setList(l=>[...l,{jugadora:"",cantidad:1}]);setDirty(true);}
+  function remove(i){setList(l=>l.filter((_,j)=>j!==i));setDirty(true);}
+  function update(i,field,val){setList(l=>l.map((x,j)=>j===i?{...x,[field]:val}:x));setDirty(true);}
+  function save(){onSave(list);setDirty(false);}
+
+  return(
+    <div style={{background:RM,border:`1px solid ${RB}`,borderRadius:12,padding:"14px",marginBottom:12}}>
+      <div style={{fontSize:12,fontWeight:800,color:"#ffcc44",letterSpacing:"0.08em",marginBottom:10}}>⚽ GOLES DE BANCO PROVINCIA</div>
+      <div style={{fontSize:11,color:GR,marginBottom:10}}>+{PTS_GOL_JUG} pts por cada goleadora acertada (verificado por admin)</div>
+      {list.map((g,i)=>(
+        <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+          <input type="number" min="1" max="9" value={g.cantidad} disabled={bloq} onChange={e=>update(i,"cantidad",parseInt(e.target.value)||1)} style={{width:44,height:40,background:RD,border:`1px solid ${RB}`,borderRadius:8,color:"#ffcc44",fontSize:18,fontWeight:900,textAlign:"center",fontFamily:"'Outfit',sans-serif",opacity:bloq?0.4:1}}/>
+          <span style={{color:GR,fontSize:12}}>×</span>
+          <input type="text" value={g.jugadora} disabled={bloq} onChange={e=>update(i,"jugadora",e.target.value)} placeholder="Nombre jugadora..." className="tag-input" style={{flex:1,opacity:bloq?0.4:1}}/>
+          {!bloq&&<button onClick={()=>remove(i)} style={{background:"#3a0000",border:"none",borderRadius:7,width:32,height:32,color:"#ff4444",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>}
+        </div>
+      ))}
+      {!bloq&&(
+        <div style={{display:"flex",gap:8,marginTop:10}}>
+          <button onClick={add} style={{flex:1,background:"#082008",border:"1px solid #1a6600",borderRadius:8,padding:"8px",fontSize:12,fontWeight:800,color:"#66ff66",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>+ Agregar gol</button>
+          <button onClick={save} disabled={!dirty} style={{flex:1,background:dirty?R:"#3a0808",border:"none",borderRadius:8,padding:"8px",fontSize:12,fontWeight:800,color:"#fff",cursor:dirty?"pointer":"default",fontFamily:"'Outfit',sans-serif"}}>💾 Guardar goles</button>
+        </div>
+      )}
+      {bloq&&<div style={{fontSize:11,color:"#553333",marginTop:8,textAlign:"center"}}>🔒 Fecha cerrada</div>}
+    </div>
+  );
+}
+
+// ─── TARJETAS INPUT ───────────────────────────────────────────────────────────
+function TarjetasBPC({tarjetas,bloq,onSave}){
+  const R="#e53030",RD="#1a0000",RM="#2a0808",RB="#5a1010",GR="#884444";
+  const [list,setList]=useState(tarjetas.length>0?tarjetas:[{tipo:"amarilla",jugadora:""}]);
+  const [dirty,setDirty]=useState(false);
+
+  const COLOR_T={verde:"#44ff66",amarilla:"#ffcc00",roja:"#ff3333"};
+
+  function add(){setList(l=>[...l,{tipo:"amarilla",jugadora:""}]);setDirty(true);}
+  function remove(i){setList(l=>l.filter((_,j)=>j!==i));setDirty(true);}
+  function update(i,field,val){setList(l=>l.map((x,j)=>j===i?{...x,[field]:val}:x));setDirty(true);}
+  function save(){onSave(list);setDirty(false);}
+
+  return(
+    <div style={{background:RM,border:`1px solid ${RB}`,borderRadius:12,padding:"14px",marginBottom:12}}>
+      <div style={{fontSize:12,fontWeight:800,color:"#ffcc44",letterSpacing:"0.08em",marginBottom:6}}>🟨 TARJETAS DE BANCO PROVINCIA</div>
+      <div style={{fontSize:11,color:GR,marginBottom:10}}>Nº correcto: +{PTS_TARJETAS_NUM}pts · Nº+Jugadora: +{PTS_TARJETAS_JUG}pts (verificado por admin)</div>
+      {list.map((t,i)=>(
+        <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+          <select value={t.tipo} disabled={bloq} onChange={e=>update(i,"tipo",e.target.value)} style={{background:RD,border:`2px solid ${COLOR_T[t.tipo]||RB}`,borderRadius:8,padding:"8px",color:COLOR_T[t.tipo]||"#fff",fontSize:12,fontWeight:800,fontFamily:"'Outfit',sans-serif",opacity:bloq?0.4:1,minWidth:90}}>
+            {TIPOS_TARJETA.map(tt=><option key={tt} value={tt}>{tt.charAt(0).toUpperCase()+tt.slice(1)}</option>)}
+          </select>
+          <input type="text" value={t.jugadora} disabled={bloq} onChange={e=>update(i,"jugadora",e.target.value)} placeholder="Jugadora amonestada..." className="tag-input" style={{flex:1,opacity:bloq?0.4:1}}/>
+          {!bloq&&<button onClick={()=>remove(i)} style={{background:"#3a0000",border:"none",borderRadius:7,width:32,height:32,color:"#ff4444",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>}
+        </div>
+      ))}
+      {!bloq&&(
+        <div style={{display:"flex",gap:8,marginTop:10}}>
+          <button onClick={add} style={{flex:1,background:"#082008",border:"1px solid #1a6600",borderRadius:8,padding:"8px",fontSize:12,fontWeight:800,color:"#66ff66",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>+ Agregar tarjeta</button>
+          <button onClick={save} disabled={!dirty} style={{flex:1,background:dirty?R:"#3a0808",border:"none",borderRadius:8,padding:"8px",fontSize:12,fontWeight:800,color:"#fff",cursor:dirty?"pointer":"default",fontFamily:"'Outfit',sans-serif"}}>💾 Guardar tarjetas</button>
+        </div>
+      )}
+      {bloq&&<div style={{fontSize:11,color:"#553333",marginTop:8,textAlign:"center"}}>🔒 Fecha cerrada</div>}
+    </div>
+  );
+}
+
+// ─── MAIN SCREEN ──────────────────────────────────────────────────────────────
+function MainScreen({userName,isAdmin,data,persist,syncStatus,onLogout,onRefresh}){
+  const [tab,setTab]=useState("pronosticos");
+  const [division,setDivision]=useState("primera");
+  const [fechaIdx,setFechaIdx]=useState(0);
+  const [rankTab,setRankTab]=useState("general");
+  const [savedRes,setSavedRes]=useState(false);
+  const [savedPred,setSavedPred]=useState(false);
+  const pendingRes=useRef({});
+  const pendingPred=useRef({});
+
+  const bloqueos=data.bloqueos||{especiales:false,fechas:{}};
+  const myUser=data.jugadores[userName]||emptyUser();
+  const myPreds=division==="primera"?myUser.predPrimera:myUser.predIntermedia;
+  const resultados=division==="primera"?data.resultadosPrimera:data.resultadosIntermedia;
+  const fecha=FECHAS[fechaIdx];
+  const fechaBloq=bloqueos.fechas?.[fecha.n]||false;
+  const espBloq=bloqueos.especiales||false;
+
+  function setPred(fechaN,pi,side,val){
+    if(bloqueos.fechas?.[fechaN])return;
+    const num=val===""?"":(Math.max(0,Math.min(99,parseInt(val)||0)));
+    const key=`${fechaN}-${pi}`;
+    const pk=division==="primera"?"predPrimera":"predIntermedia";
+    if(!pendingPred.current[pk])pendingPred.current[pk]={...myPreds};
+    pendingPred.current[pk][key]={...(pendingPred.current[pk][key]||{}),[side]:num};
+    setSavedPred(false);
+    // also update local display state immediately via persist for UX
+    persist({...data,jugadores:{...data.jugadores,[userName]:{...myUser,[pk]:{...myPreds,[key]:{...(myPreds[key]||{}),[side]:num}}}}});
+  }
+  function savePronos(){
+    // force a cloud sync of current data
+    persist({...data});
+    pendingPred.current={};
+    setSavedPred(true);
+    setTimeout(()=>setSavedPred(false),2500);
+  }
+
+  // resultados con boton guardar — usando estado local para evitar mezcla entre divisiones
+  const [localRes,setLocalRes]=useState({});
+  const localResKey=`${division}_${fecha?.n}`;
+  function setResultadoLocal(fechaN,pi,side,val){
+    const key=`${fechaN}-${pi}`;
+    const num=val===""?"":Math.max(0,Math.min(99,parseInt(val)||0));
+    setLocalRes(prev=>({...prev,[`${division}_${fechaN}_${pi}_${side}`]:num}));
+    setSavedRes(false);
+  }
+  function saveResultados(){
+    const rk=division==="primera"?"resultadosPrimera":"resultadosIntermedia";
+    const updated={...data[rk]};
+    fecha.partidos.forEach((_,pi)=>{
+      const key=`${fecha.n}-${pi}`;
+      const hKey=`${division}_${fecha.n}_${pi}_h`;
+      const aKey=`${division}_${fecha.n}_${pi}_a`;
+      const hVal=localRes[hKey]!==undefined?localRes[hKey]:null;
+      const aVal=localRes[aKey]!==undefined?localRes[aKey]:null;
+      // only update if both sides have been touched or already existed
+      if(localRes[hKey]!==undefined||localRes[aKey]!==undefined){
+        updated[key]={
+          h:localRes[hKey]!==undefined?localRes[hKey]:(data[rk][key]?.h??null),
+          a:localRes[aKey]!==undefined?localRes[aKey]:(data[rk][key]?.a??null)
+        };
+      }
+    });
+    persist({...data,[rk]:updated});
+    setSavedRes(true);
+    setTimeout(()=>setSavedRes(false),2500);
+  }
+  function getResVal(fechaN,pi,side){
+    const lk=`${division}_${fechaN}_${pi}_${side}`;
+    if(localRes[lk]!==undefined)return localRes[lk];
+    const rk=division==="primera"?"resultadosPrimera":"resultadosIntermedia";
+    const r=data[rk][`${fechaN}-${pi}`];
+    return r?.[side]!==null&&r?.[side]!==undefined?r[side]:"";
+  }
+
+  function setEspecial(campo,val){
+    if(espBloq)return;
+    persist({...data,jugadores:{...data.jugadores,[userName]:{...myUser,especiales:{...(myUser.especiales||{}),[campo]:val}}}});
+  }
+  function setEspRes(campo,val){
+    persist({...data,especiales_resultado:{...(data.especiales_resultado||{}),[campo]:val}});
+  }
+
+  const jugadores=Object.keys(data.jugadores);
+  const mkRank=div=>jugadores.map(n=>({nombre:n,score:calcScoreDiv(n,div,data)+calcScoreBPC(n,div,data),yo:n===userName})).sort((a,b)=>b.score-a.score);
+  const rankPrimera=mkRank("primera"),rankInter=mkRank("intermedia");
+  const rankGeneral=jugadores.map(n=>({nombre:n,score:calcScoreDiv(n,"primera",data)+calcScoreBPC(n,"primera",data)+calcScoreDiv(n,"intermedia",data)+calcScoreBPC(n,"intermedia",data),yo:n===userName})).sort((a,b)=>b.score-a.score);
+
+  // ranking BPC: puntos de partidos+goles+tarjetas de BPC
+  const mkRankBPC=div=>jugadores.map(n=>{
+    const s=calcScoreBPC(n,div,data);
+    return{nombre:n,score:s,yo:n===userName};
+  }).sort((a,b)=>b.score-a.score);
+  const rankBPCPrimera=mkRankBPC("primera"),rankBPCInter=mkRankBPC("intermedia");
+  const rankBPCGeneral=jugadores.map(n=>({nombre:n,score:calcScoreBPC(n,"primera",data)+calcScoreBPC(n,"intermedia",data),yo:n===userName})).sort((a,b)=>b.score-a.score);
+
+  const R="#e53030",RD="#1a0000",RM="#2a0808",RB="#5a1010",GR="#884444";
+  const tabSt=a=>({background:"none",border:"none",padding:"10px 10px",fontSize:11,fontWeight:800,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",color:a?R:"#553333",borderBottom:a?`2px solid ${R}`:"2px solid transparent",whiteSpace:"nowrap",fontFamily:"'Outfit',sans-serif",marginBottom:-1});
+  const cardSt={background:RM,border:`1px solid ${RB}`,borderRadius:12,padding:"14px 16px",marginBottom:10};
+  const inpSt={width:44,height:44,background:RD,border:`2px solid ${RB}`,borderRadius:8,color:R,fontSize:20,fontWeight:800,textAlign:"center",fontFamily:"'Outfit',sans-serif"};
+  const navBtn=dis=>({background:RM,border:`1px solid ${RB}`,borderRadius:8,width:36,height:36,color:R,fontSize:22,cursor:dis?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",opacity:dis?0.25:1,flexShrink:0});
+
+  const tabs=[["pronosticos","🗳️ Pronóst."],["ranking","🏆 Ranking"],["especiales","⭐ Especiales"],["banquito","🏑 Banquito B"],["espiar","👀 Ver todas"]];
+  if(isAdmin){tabs.push(["resultados","✅ Resultados"]);tabs.push(["bloqueos","🔒 Bloqueos"]);}
+
+  return(
+    <div style={{minHeight:"100vh",background:RD,color:"#fff",fontFamily:"'Outfit',sans-serif"}}>
+      {/* HEADER */}
+      <div style={{background:"#2a0000",borderBottom:`2px solid ${RB}`,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:900}}>🏑 <span style={{color:R}}>PRODE</span> 2026</div>
+          <SyncBadge s={syncStatus}/>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={onRefresh} title="Actualizar" style={{background:RM,border:`1px solid ${RB}`,borderRadius:8,width:32,height:32,color:GR,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>⟳</button>
+          <div style={{background:isAdmin?"#3a0000":RM,border:`1px solid ${isAdmin?R:RB}`,borderRadius:8,padding:"4px 10px",fontSize:12,fontWeight:700,color:isAdmin?R:"#ffcccc"}}>{isAdmin?"🔑":"👤"} {userName}</div>
+          <button onClick={onLogout} style={{background:"none",border:`1px solid ${RB}`,borderRadius:8,padding:"4px 9px",fontSize:11,color:GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>Salir</button>
+        </div>
+      </div>
+
+      {/* TABS */}
+      <div style={{display:"flex",background:"#150000",borderBottom:`1px solid ${RB}`,overflowX:"auto"}}>
+        {tabs.map(([id,l])=><button key={id} style={tabSt(tab===id)} onClick={()=>setTab(id)}>{l}</button>)}
+      </div>
+
+      {/* DIVISION SELECTOR */}
+      {(tab==="pronosticos"||tab==="especiales"||(tab==="resultados"&&isAdmin)||tab==="banquito")&&(
+        <div style={{display:"flex",gap:10,padding:"10px 16px",background:"#150000",borderBottom:`1px solid ${RB}`}}>
+          {[["primera","Primera"],["intermedia","Intermedia"]].map(([d,l])=>(
+            <button key={d} onClick={()=>setDivision(d)} style={{flex:1,background:division===d?R:RM,border:`1px solid ${division===d?R:RB}`,borderRadius:8,padding:"8px",fontSize:13,fontWeight:800,color:division===d?"#fff":GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{l}</button>
+          ))}
+        </div>
+      )}
+
+      <div style={{padding:16,maxWidth:640,margin:"0 auto"}}>
+
+        {/* ── PRONÓSTICOS ── */}
+        {tab==="pronosticos"&&(
+          <div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+              <button onClick={()=>fechaIdx>0&&setFechaIdx(i=>i-1)} style={navBtn(fechaIdx===0)}>‹</button>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:20,fontWeight:900,color:fechaBloq?"#553333":R}}>FECHA {fecha.n}</div>
+                <div style={{fontSize:12,color:GR}}>{fecha.dia} · 16:00 · {division==="primera"?"PRIMERA":"INTERMEDIA"}</div>
+                {fechaBloq&&<div style={{fontSize:11,color:"#ff4444",fontWeight:700,marginTop:3}}>🔒 Cerrada</div>}
+              </div>
+              <button onClick={()=>fechaIdx<FECHAS.length-1&&setFechaIdx(i=>i+1)} style={navBtn(fechaIdx===FECHAS.length-1)}>›</button>
+            </div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14}}>
+              {FECHAS.map((f,i)=>{
+                const bl=bloqueos.fechas?.[f.n]||false;
+                const ok=!bl&&f.partidos.every((_,pi)=>{const p=myPreds[`${f.n}-${pi}`];return p&&p.h!==undefined&&p.h!==""&&p.a!==undefined&&p.a!==""});
+                return<button key={f.n} onClick={()=>setFechaIdx(i)} style={{background:fechaIdx===i?R:RM,border:`1px solid ${fechaIdx===i?R:ok?"#e5303055":bl?"#33000055":RB}`,borderRadius:6,padding:"3px 8px",fontSize:11,fontWeight:700,color:fechaIdx===i?"#fff":ok?R:bl?"#442222":GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{f.n}{ok?"✓":bl?"🔒":""}</button>;
+              })}
+            </div>
+            {fechaBloq&&<div style={{background:"#200000",border:"1px solid #5a1010",borderRadius:12,padding:"12px 16px",marginBottom:12,textAlign:"center",color:"#ff4444",fontSize:13,fontWeight:700}}>🔒 Esta fecha está cerrada.</div>}
+            {fecha.partidos.map((partido,pi)=>{
+              const key=`${fecha.n}-${pi}`;
+              const pred=myPreds[key]||{};
+              const real=resultados[key];
+              const hasReal=real&&real.h!==null&&real.h!==undefined&&real.h!==""&&real.a!==null&&real.a!==undefined&&real.a!=="";
+              const hasPred=pred.h!==undefined&&pred.h!==""&&pred.a!==undefined&&pred.a!=="";
+              const pts=hasReal?calcPts(pred,real):null;
+              const predsTodas=fechaBloq?Object.entries(data.jugadores).map(([nom,u])=>{
+                const pp=division==="primera"?u.predPrimera:u.predIntermedia;const p=pp?.[key];
+                if(!p||p.h===undefined||p.h===""||p.a===undefined||p.a==="")return null;
+                const pts2=hasReal?calcPts(p,real):null;return{nom,h:p.h,a:p.a,pts:pts2,yo:nom===userName};
+              }).filter(Boolean):[];
+              return(
+                <div key={pi} style={{...cardSt,borderColor:pts===3?"#e5303066":pts===1?"#ff886655":hasPred?RB:"#2a0505",opacity:fechaBloq&&!hasPred?0.45:1}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <span style={{fontSize:10,color:GR,letterSpacing:"0.08em"}}>PARTIDO {pi+1}</span>
+                    {pts!==null&&<span style={{fontSize:10,fontWeight:800,padding:"2px 9px",borderRadius:10,background:pts===3?"#e5303033":pts===1?"#ff886633":"#ffffff11",color:pts===3?R:pts===1?"#ff8866":"#554444",border:`1px solid ${pts===3?"#e5303066":pts===1?"#ff886655":"#333"}`}}>{pts===3?"⭐ EXACTO":pts===1?"✓ RESULTADO":"✗ SIN PTS"}{pts>0?` +${pts}`:""}</span>}
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:8,alignItems:"center"}}>
+                    <div style={{fontSize:13,fontWeight:700,textAlign:"right",lineHeight:1.2}}>{partido[0]}</div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <input type="number" min="0" max="99" className="si" disabled={fechaBloq} value={pred.h!==undefined?pred.h:""} onChange={e=>setPred(fecha.n,pi,"h",e.target.value)} style={{...inpSt,borderColor:hasPred?R:RB,opacity:fechaBloq?0.35:1}}/>
+                      <span style={{color:"#553333",fontSize:14,fontWeight:700}}>—</span>
+                      <input type="number" min="0" max="99" className="si" disabled={fechaBloq} value={pred.a!==undefined?pred.a:""} onChange={e=>setPred(fecha.n,pi,"a",e.target.value)} style={{...inpSt,borderColor:hasPred?R:RB,opacity:fechaBloq?0.35:1}}/>
+                    </div>
+                    <div style={{fontSize:13,fontWeight:700,textAlign:"left",lineHeight:1.2}}>{partido[1]}</div>
+                  </div>
+                  {hasReal&&<div style={{textAlign:"center",fontSize:11,color:GR,marginTop:8}}>Real: <span style={{color:R,fontWeight:700}}>{real.h} — {real.a}</span></div>}
+                  {fechaBloq&&predsTodas.length>0&&(
+                    <div style={{marginTop:10,borderTop:`1px solid ${RB}`,paddingTop:10}}>
+                      <div style={{fontSize:10,color:GR,letterSpacing:"0.08em",marginBottom:6}}>👀 PRONÓSTICOS DE TODAS</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                        {predsTodas.sort((a,b)=>(b.pts||0)-(a.pts||0)).map(p=>(
+                          <div key={p.nom} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:p.yo?"#2a0000":"#1a0000",border:`1px solid ${p.yo?R:"#330000"}`,borderRadius:7,padding:"5px 10px"}}>
+                            <span style={{fontSize:12,fontWeight:p.yo?800:600,color:p.yo?R:"#ffaaaa"}}>{p.yo?"→ ":""}{p.nom}</span>
+                            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                              <span style={{fontSize:13,fontWeight:800,color:p.yo?R:"#ffcccc"}}>{p.h} — {p.a}</span>
+                              {p.pts!==null&&<span style={{fontSize:10,fontWeight:800,color:p.pts===3?"#ffd700":p.pts===1?"#ff8866":"#443333"}}>{p.pts===3?"⭐":p.pts===1?"✓":"✗"}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div style={{background:RM,border:`1px solid ${RB}`,borderRadius:10,padding:"10px 14px",display:"flex",gap:16,flexWrap:"wrap",justifyContent:"center",marginTop:4}}>
+              <span style={{fontSize:11,color:GR}}><span style={{color:R,fontWeight:700}}>+3</span> Exacto</span>
+              <span style={{fontSize:11,color:GR}}><span style={{color:"#ff8866",fontWeight:700}}>+1</span> Resultado</span>
+              <span style={{fontSize:11,color:GR}}><span style={{color:"#443333",fontWeight:700}}>0</span> Error</span>
+            </div>
+            {!fechaBloq&&(
+              <button onClick={savePronos} style={{width:"100%",background:R,border:"none",borderRadius:10,padding:"13px",fontSize:15,fontWeight:900,color:"#fff",cursor:"pointer",fontFamily:"'Outfit',sans-serif",marginTop:10}}>
+                💾 GUARDAR PRONÓSTICOS
+              </button>
+            )}
+            {savedPred&&<div style={{background:"#082008",border:"1px solid #1a6600",borderRadius:10,padding:"12px",textAlign:"center",color:"#66ff66",fontWeight:800,fontSize:14,marginTop:8}}>✓ Pronósticos guardados correctamente</div>}
+          </div>
+        )}
+
+        {/* ── RANKING ── */}
+        {tab==="ranking"&&(
+          <div>
+            <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+              {[["general","🌟 General"],["primera","Primera"],["intermedia","Intermedia"],["bpc_general","🏑 BPC Gral"],["bpc_primera","BPC 1ra"],["bpc_inter","BPC Int"]].map(([id,l])=>(
+                <button key={id} onClick={()=>setRankTab(id)} style={{flex:1,minWidth:"30%",background:rankTab===id?(id.startsWith("bpc")?"#ffcc44":R):RM,border:`1px solid ${rankTab===id?(id.startsWith("bpc")?"#ffcc44":R):RB}`,borderRadius:8,padding:"7px 4px",fontSize:11,fontWeight:800,color:rankTab===id?(id.startsWith("bpc")?"#000":"#fff"):GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{l}</button>
+              ))}
+            </div>
+            {rankTab==="general"&&<RankingList rows={rankGeneral} label="RANKING GENERAL" subtitle="Primera + Intermedia combinados"/>}
+            {rankTab==="primera"&&<RankingList rows={rankPrimera} label="RANKING PRIMERA" subtitle="Solo partidos de Primera"/>}
+            {rankTab==="intermedia"&&<RankingList rows={rankInter} label="RANKING INTERMEDIA" subtitle="Solo partidos de Intermedia"/>}
+            {rankTab==="bpc_general"&&<RankingList rows={rankBPCGeneral} label="🏑 RANKING BANQUITO B — GENERAL" subtitle="Partidos + goles + tarjetas de Bco. Provincia B (ambas divisiones)"/>}
+            {rankTab==="bpc_primera"&&<RankingList rows={rankBPCPrimera} label="🏑 RANKING BANQUITO B — PRIMERA" subtitle="Partidos + goles + tarjetas de Bco. Provincia B en Primera"/>}
+            {rankTab==="bpc_inter"&&<RankingList rows={rankBPCInter} label="🏑 RANKING BANQUITO B — INTERMEDIA" subtitle="Partidos + goles + tarjetas de Bco. Provincia B en Intermedia"/>}
+          </div>
+        )}
+
+        {/* ── ESPECIALES ── */}
+        {tab==="especiales"&&(
+          <div>
+            <div style={{background:espBloq?"#2a0808":"#082008",border:`1px solid ${espBloq?RB:"#1a6600"}`,borderRadius:12,padding:"11px 15px",marginBottom:16,fontSize:13,color:espBloq?"#ff6666":"#66ff66"}}>
+              {espBloq?"🔒 Especiales cerrados.":"🔓 Especiales abiertos — podés editar."}
+            </div>
+            {(()=>{const div=division;const label=div==="primera"?"Primera":"Intermedia";
+              const gk=`goleadora${cap(div)}`,ck=`campeon${cap(div)}`;
+              return(
+                <div key={div} style={{marginBottom:20}}>
+                  <div style={{...cardSt,marginBottom:8}}>
+                    <div style={{fontSize:11,fontWeight:700,color:GR,letterSpacing:"0.08em",marginBottom:6}}>⚽ GOLEADORA (de nuestro club)</div>
+                    <input type="text" disabled={espBloq} value={myUser.especiales?.[gk]||""} onChange={e=>setEspecial(gk,e.target.value)} placeholder="Nombre de la jugadora..." style={{width:"100%",background:RD,border:`1px solid ${RB}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,fontFamily:"'Outfit',sans-serif",opacity:espBloq?0.45:1}}/>
+                    <div style={{fontSize:10,color:GR,marginTop:4}}>Vale {PTS_ESPECIAL} puntos</div>
+                  </div>
+                  <div style={cardSt}>
+                    <div style={{fontSize:11,fontWeight:700,color:GR,letterSpacing:"0.08em",marginBottom:6}}>🏆 CAMPEÓN</div>
+                    <select disabled={espBloq} value={myUser.especiales?.[ck]||""} onChange={e=>setEspecial(ck,e.target.value)} style={{width:"100%",background:RD,border:`1px solid ${RB}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,fontFamily:"'Outfit',sans-serif",opacity:espBloq?0.45:1}}>
+                      <option value="">— Elegí un equipo —</option>
+                      {EQUIPOS.map(eq=><option key={eq} value={eq}>{eq}</option>)}
+                    </select>
+                    <div style={{fontSize:10,color:GR,marginTop:4}}>Vale {PTS_ESPECIAL} puntos</div>
+                  </div>
+                  <div style={{...cardSt,marginBottom:8}}>
+                    <div style={{fontSize:11,fontWeight:700,color:GR,letterSpacing:"0.08em",marginBottom:6}}>🟢 MÁS VERDES (Bco. Provincia B)</div>
+                    <input type="text" disabled={espBloq} value={myUser.especiales?.[`masVerdes${cap(div)}`]||""} onChange={e=>setEspecial(`masVerdes${cap(div)}`,e.target.value)} placeholder="Nombre de la jugadora..." style={{width:"100%",background:RD,border:`1px solid ${RB}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,fontFamily:"'Outfit',sans-serif",opacity:espBloq?0.45:1}}/>
+                    <div style={{fontSize:10,color:GR,marginTop:4}}>Vale {PTS_TARJETA_ESP} puntos · verificado por admin al final</div>
+                  </div>
+                  <div style={cardSt}>
+                    <div style={{fontSize:11,fontWeight:700,color:GR,letterSpacing:"0.08em",marginBottom:6}}>🟨 MÁS AMARILLAS (Bco. Provincia B)</div>
+                    <input type="text" disabled={espBloq} value={myUser.especiales?.[`masAmarillas${cap(div)}`]||""} onChange={e=>setEspecial(`masAmarillas${cap(div)}`,e.target.value)} placeholder="Nombre de la jugadora..." style={{width:"100%",background:RD,border:`1px solid ${RB}`,borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:14,fontFamily:"'Outfit',sans-serif",opacity:espBloq?0.45:1}}/>
+                    <div style={{fontSize:10,color:GR,marginTop:4}}>Vale {PTS_TARJETA_ESP} puntos · verificado por admin al final</div>
+                  </div>
+                </div>
+              );
+            })()}
+            {isAdmin&&(
+              <div style={{background:"#2a0000",border:`2px solid ${R}`,borderRadius:12,padding:"14px 16px",marginTop:8}}>
+                <div style={{fontSize:12,fontWeight:800,color:R,letterSpacing:"0.1em",marginBottom:4}}>🔑 ADMIN — RESULTADOS ESPECIALES REALES</div>
+                <div style={{fontSize:11,color:GR,marginBottom:14}}>Cada acierto vale {PTS_ESPECIAL} puntos.</div>
+                {(()=>{const div=division;const label=div==="primera"?"Primera":"Intermedia";
+                  const gk=`goleadora${cap(div)}`,ck=`campeon${cap(div)}`;
+                  const overrides=data.especiales_resultado?.overrides||{};
+                  return(
+                    <div key={div} style={{marginBottom:18}}>
+                      <div style={{fontSize:11,fontWeight:700,color:GR,marginBottom:8,borderBottom:"1px solid #3a0000",paddingBottom:4}}>{label.toUpperCase()}</div>
+                      <div style={{fontSize:10,color:GR,marginBottom:4}}>⚽ Nombre de la goleadora real</div>
+                      <input type="text" placeholder="Goleadora real..." value={data.especiales_resultado?.[gk]||""} onChange={e=>setEspRes(gk,e.target.value)} style={{width:"100%",background:RD,border:`1px solid ${RB}`,borderRadius:8,padding:"9px 12px",color:"#fff",fontSize:13,fontFamily:"'Outfit',sans-serif",marginBottom:10}}/>
+                      <div style={{fontSize:10,color:"#ffcc44",marginBottom:6,fontWeight:700}}>✏️ Marcar manualmente quién acertó el goleador</div>
+                      {jugadores.map(nom=>{
+                        const esp=data.jugadores[nom]?.especiales||{};
+                        const valEscrito=esp[gk];if(!valEscrito)return null;
+                        const overrideKey=`${div}_goleadora_${nom}`;
+                        const autoAcierto=data.especiales_resultado?.[gk]&&valEscrito.toLowerCase().trim()===data.especiales_resultado[gk].toLowerCase().trim();
+                        const manualOn=overrides[overrideKey]===true;
+                        const acerto=autoAcierto||manualOn;
+                        return(
+                          <div key={nom} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:acerto?"#0a2000":"#150000",border:`1px solid ${acerto?"#336600":"#2a0000"}`,borderRadius:8,padding:"7px 12px",marginBottom:4}}>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:700,color:acerto?"#66ff66":"#cc9999"}}>{nom}</div>
+                              <div style={{fontSize:11,color:GR}}>escribió: <span style={{color:"#ffcccc"}}>{valEscrito}</span></div>
+                            </div>
+                            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                              {autoAcierto&&<span style={{fontSize:10,color:"#44cc44"}}>✓ auto</span>}
+                              <button onClick={()=>{const newOv={...overrides,[overrideKey]:!manualOn};setEspRes("overrides",newOv);}} style={{background:manualOn?"#1a4400":"#2a0000",border:`1px solid ${manualOn?"#44aa00":"#5a1010"}`,borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:800,color:manualOn?"#66ff66":"#884444",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>
+                                {manualOn?"⭐ Acertó":"✗ No acertó"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }).filter(Boolean)}
+                      <div style={{fontSize:10,color:GR,marginTop:10,marginBottom:4}}>🏆 Campeón real</div>
+                      <select value={data.especiales_resultado?.[ck]||""} onChange={e=>setEspRes(ck,e.target.value)} style={{width:"100%",background:RD,border:`1px solid ${RB}`,borderRadius:8,padding:"9px 12px",color:"#fff",fontSize:13,fontFamily:"'Outfit',sans-serif"}}>
+                        <option value="">— Campeón real —</option>
+                        {EQUIPOS.map(eq=><option key={eq} value={eq}>{eq}</option>)}
+                      </select>
+
+                      {/* Más verdes */}
+                      <div style={{fontSize:10,color:"#44ff66",marginTop:14,marginBottom:6,fontWeight:700}}>🟢 Marcar quién acertó MÁS VERDES</div>
+                      {jugadores.map(nom=>{
+                        const esp=data.jugadores[nom]?.especiales||{};
+                        const val=esp[`masVerdes${cap(div)}`];if(!val)return null;
+                        const ok=overrides[`${div}_masVerdes_${nom}`]===true;
+                        return(
+                          <div key={nom} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:ok?"#0a2000":"#150000",border:`1px solid ${ok?"#336600":"#2a0000"}`,borderRadius:8,padding:"7px 12px",marginBottom:4}}>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:700,color:ok?"#66ff66":"#cc9999"}}>{nom}</div>
+                              <div style={{fontSize:11,color:GR}}>escribió: <span style={{color:"#ffcccc"}}>{val}</span></div>
+                            </div>
+                            <button onClick={()=>{const newOv={...overrides,[`${div}_masVerdes_${nom}`]:!ok};setEspRes("overrides",newOv);}} style={{background:ok?"#1a4400":"#2a0000",border:`1px solid ${ok?"#44aa00":"#5a1010"}`,borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:800,color:ok?"#66ff66":"#884444",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>
+                              {ok?"⭐ Acertó":"✗ No acertó"}
+                            </button>
+                          </div>
+                        );
+                      }).filter(Boolean)}
+
+                      {/* Más amarillas */}
+                      <div style={{fontSize:10,color:"#ffcc00",marginTop:14,marginBottom:6,fontWeight:700}}>🟨 Marcar quién acertó MÁS AMARILLAS</div>
+                      {jugadores.map(nom=>{
+                        const esp=data.jugadores[nom]?.especiales||{};
+                        const val=esp[`masAmarillas${cap(div)}`];if(!val)return null;
+                        const ok=overrides[`${div}_masAmarillas_${nom}`]===true;
+                        return(
+                          <div key={nom} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:ok?"#0a2000":"#150000",border:`1px solid ${ok?"#336600":"#2a0000"}`,borderRadius:8,padding:"7px 12px",marginBottom:4}}>
+                            <div>
+                              <div style={{fontSize:12,fontWeight:700,color:ok?"#66ff66":"#cc9999"}}>{nom}</div>
+                              <div style={{fontSize:11,color:GR}}>escribió: <span style={{color:"#ffcccc"}}>{val}</span></div>
+                            </div>
+                            <button onClick={()=>{const newOv={...overrides,[`${div}_masAmarillas_${nom}`]:!ok};setEspRes("overrides",newOv);}} style={{background:ok?"#1a4400":"#2a0000",border:`1px solid ${ok?"#44aa00":"#5a1010"}`,borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:800,color:ok?"#66ff66":"#884444",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>
+                              {ok?"⭐ Acertó":"✗ No acertó"}
+                            </button>
+                          </div>
+                        );
+                      }).filter(Boolean)}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── BANQUITO B ── */}
+        {tab==="banquito"&&(
+          <BPCTab data={data} userName={userName} division={division} bloqueos={bloqueos} persist={persist} isAdmin={isAdmin}/>
+        )}
+
+        {/* ── ESPIAR ── */}
+        {tab==="espiar"&&(
+          <EspiarTab data={data} userName={userName} division={division} bloqueos={bloqueos} resultados={resultados}/>
+        )}
+
+        {/* ── RESULTADOS ADMIN ── */}
+        {tab==="resultados"&&isAdmin&&(
+          <div>
+            <div style={{background:"#2a0000",border:`1px solid ${R}33`,borderRadius:12,padding:"11px 15px",marginBottom:14,fontSize:12,color:"#ff8866"}}>
+              🔑 Cargá los resultados reales. Usá el botón <strong>💾 Guardar</strong> para confirmar.
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+              <button onClick={()=>fechaIdx>0&&setFechaIdx(i=>i-1)} style={navBtn(fechaIdx===0)}>‹</button>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:20,fontWeight:900,color:"#ff8866"}}>FECHA {fecha.n}</div>
+                <div style={{fontSize:12,color:GR}}>{fecha.dia} · {division==="primera"?"PRIMERA":"INTERMEDIA"}</div>
+              </div>
+              <button onClick={()=>fechaIdx<FECHAS.length-1&&setFechaIdx(i=>i+1)} style={navBtn(fechaIdx===FECHAS.length-1)}>›</button>
+            </div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:14}}>
+              {FECHAS.map((f,i)=>{
+                const rk=division==="primera"?"resultadosPrimera":"resultadosIntermedia";
+                const completa=f.partidos.every((_,pi)=>{const r=data[rk][`${f.n}-${pi}`];return r&&r.h!==null&&r.h!==undefined&&r.h!==""&&r.a!==null&&r.a!==undefined&&r.a!==""});
+                return<button key={f.n} onClick={()=>setFechaIdx(i)} style={{background:fechaIdx===i?"#ff8866":RM,border:`1px solid ${fechaIdx===i?"#ff8866":completa?"#ff886655":RB}`,borderRadius:6,padding:"3px 8px",fontSize:11,fontWeight:700,color:fechaIdx===i?"#000":completa?"#ff8866":GR,cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}>{f.n}{completa?"✓":""}</button>;
+              })}
+            </div>
+            {fecha.partidos.map((partido,pi)=>{
+              const key=`${fecha.n}-${pi}`;
+              return(
+                <div key={pi} style={{...cardSt}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:8,alignItems:"center"}}>
+                    <div style={{fontSize:13,fontWeight:700,textAlign:"right",lineHeight:1.2}}>{partido[0]}</div>
+                    <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <input type="number" min="0" max="99" className="si" value={getResVal(fecha.n,pi,"h")} onChange={e=>setResultadoLocal(fecha.n,pi,"h",e.target.value)} style={{...inpSt,borderColor:"#ff8866",color:"#ff8866"}}/>
+                      <span style={{color:"#553333",fontSize:14}}>—</span>
+                      <input type="number" min="0" max="99" className="si" value={getResVal(fecha.n,pi,"a")} onChange={e=>setResultadoLocal(fecha.n,pi,"a",e.target.value)} style={{...inpSt,borderColor:"#ff8866",color:"#ff8866"}}/>
+                    </div>
+                    <div style={{fontSize:13,fontWeight:700,textAlign:"left",lineHeight:1.2}}>{partido[1]}</div>
+                  </div>
+                </div>
+              );
+            })}
+            <button onClick={saveResultados} style={{width:"100%",background:R,border:"none",borderRadius:10,padding:"14px",fontSize:16,fontWeight:900,color:"#fff",cursor:"pointer",fontFamily:"'Outfit',sans-serif",marginTop:8}}>
+              💾 GUARDAR RESULTADOS
+            </button>
+            {savedRes&&<div style={{background:"#082008",border:"1px solid #1a6600",borderRadius:10,padding:"12px",textAlign:"center",color:"#66ff66",fontWeight:800,fontSize:14,marginTop:10}}>✓ Resultados guardados correctamente</div>}
+          </div>
+        )}
+
+        {/* ── BLOQUEOS ADMIN ── */}
+        {tab==="bloqueos"&&isAdmin&&(
+          <AdminBloqueos data={data} persist={persist}/>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────────────
+function App(){
+  const [screen,setScreen]=useState("login");
+  const [isAdmin,setIsAdmin]=useState(false);
+  const [userName,setUserName]=useState("");
+  const [nameInput,setNameInput]=useState("");
+  const [passInput,setPassInput]=useState("");
+  const [loginMode,setLoginMode]=useState("usuario");
+  const [loginError,setLoginError]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [data,setData]=useState(()=>migrateData(localLoad()));
+  const [syncStatus,setSyncStatus]=useState("ok");
+  const saveTimer=useRef(null);
+
+  useEffect(()=>{
+    cloudLoad().then(d=>{const md=migrateData(d);setData(md);localSave(md);setSyncStatus("ok");}).catch(()=>setSyncStatus("error"));
+  },[]);
+
+  function persist(nd){
+    nd=migrateData(nd);setData(nd);localSave(nd);setSyncStatus("syncing");
+    if(saveTimer.current)clearTimeout(saveTimer.current);
+    saveTimer.current=setTimeout(()=>{
+      cloudSave(nd).then(()=>setSyncStatus("ok")).catch(()=>setSyncStatus("error"));
+    },800);
+  }
+
+  async function handleRefresh(){
+    setSyncStatus("syncing");
+    try{const d=await cloudLoad();const md=migrateData(d);setData(md);localSave(md);setSyncStatus("ok");}
+    catch{setSyncStatus("error");}
+  }
+
+  async function handleLogin(){
+    const name=nameInput.trim();
+    if(!name){setLoginError("Ingresá tu nombre");return;}
+    if(loginMode==="admin"){if(passInput!==ADMIN_PASS){setLoginError("Clave incorrecta");return;}setIsAdmin(true);}
+    else{setIsAdmin(false);}
+    setLoading(true);
+    let cur=data;
+    try{cur=await cloudLoad();cur=migrateData(cur);setData(cur);localSave(cur);setSyncStatus("ok");}
+    catch{setSyncStatus("error");}
+    if(!cur.jugadores[name]){
+      const nd={...cur,jugadores:{...cur.jugadores,[name]:emptyUser()}};
+      persist(nd);cur=nd;
+    }
+    setUserName(name);setLoading(false);setScreen("main");
+  }
+
+  if(screen==="login")return<LoginScreen nameInput={nameInput} setNameInput={setNameInput} passInput={passInput} setPassInput={setPassInput} loginMode={loginMode} setLoginMode={setLoginMode} loginError={loginError} onLogin={handleLogin} existingUsers={Object.keys(data.jugadores)} loading={loading}/>;
+  return<MainScreen userName={userName} isAdmin={isAdmin} data={data} persist={persist} syncStatus={syncStatus} onLogout={()=>{setScreen("login");setNameInput("");setPassInput("");setLoginError("");setIsAdmin(false);}} onRefresh={handleRefresh}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
